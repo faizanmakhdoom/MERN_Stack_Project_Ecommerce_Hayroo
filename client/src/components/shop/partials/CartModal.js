@@ -5,21 +5,21 @@ import { cartListProduct } from "./FetchApi";
 import { isAuthenticate } from "../auth/fetchApi";
 import { cartList } from "../productDetails/Mixins";
 import { subTotal, quantity, totalCost } from "./Mixins";
+// import { cartList, quantity, subTotal, totalCost } from "./Mixins";
+
 
 const apiURL = process.env.REACT_APP_API_URL;
 
 const CartModal = () => {
   const history = useHistory();
-
   const { data, dispatch } = useContext(LayoutContext);
-  const products = data.cartProduct;
+  const products = data.cartProduct || []; // Safe default
 
   const cartModalOpen = () =>
     dispatch({ type: "cartModalToggle", payload: !data.cartModal });
 
   useEffect(() => {
     fetchData();
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -29,9 +29,14 @@ const CartModal = () => {
       if (responseData && responseData.Products) {
         dispatch({ type: "cartProduct", payload: responseData.Products });
         dispatch({ type: "cartTotalCost", payload: totalCost() });
+      } else {
+        dispatch({ type: "cartProduct", payload: [] });
+        dispatch({ type: "cartTotalCost", payload: 0 });
       }
     } catch (error) {
       console.log(error);
+      dispatch({ type: "cartProduct", payload: [] });
+      dispatch({ type: "cartTotalCost", payload: 0 });
     }
   };
 
@@ -46,10 +51,12 @@ const CartModal = () => {
       dispatch({ type: "inCart", payload: cartList() });
       dispatch({ type: "cartTotalCost", payload: totalCost() });
     }
+
     if (cart.length === 0) {
-      dispatch({ type: "cartProduct", payload: null });
+      dispatch({ type: "cartProduct", payload: [] }); // Use empty array
       fetchData();
       dispatch({ type: "inCart", payload: cartList() });
+      dispatch({ type: "cartTotalCost", payload: 0 });
     }
   };
 
@@ -77,7 +84,7 @@ const CartModal = () => {
               {/* Cart Modal Close Button */}
               <div className="p-4 text-white">
                 <svg
-                  onClick={(e) => cartModalOpen()}
+                  onClick={cartModalOpen}
                   className="w-6 h-6 cursor-pointer"
                   fill="currentColor"
                   viewBox="0 0 20 20"
@@ -91,86 +98,79 @@ const CartModal = () => {
                 </svg>
               </div>
             </div>
-            <div className="m-4 flex-col">
-              {products &&
-                products.length !== 0 &&
-                products.map((item, index) => {
-                  return (
-                    <Fragment key={index}>
-                      {/* Cart Product Start */}
-                      <div className="text-white flex space-x-2 my-4 items-center">
-                        <img
-                          className="w-16 h-16 object-cover object-center"
-                          src={`${apiURL}/uploads/products/${item.pImages[0]}`}
-                          alt="cartProduct"
-                        />
-                        <div className="relative w-full flex flex-col">
-                          <div className="my-2">{item.pName}</div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center justify-between space-x-2">
-                              <div className="text-sm text-gray-400">
-                                Quantity :
-                              </div>
-                              <div className="flex items-end">
-                                <span className="text-sm text-gray-200">
-                                  {quantity(item._id)}
-                                </span>
-                              </div>
-                            </div>
-                            <div>
-                              {" "}
-                              <span className="text-sm text-gray-400">
-                                Subtotoal :
-                              </span>{" "}
-                              ${subTotal(item._id, item.pPrice)}.00
-                            </div>{" "}
-                            {/* SUbtotal Count */}
-                          </div>
-                          {/* Cart Product Remove Button */}
-                          <div
-                            onClick={(e) => removeCartProduct(item._id)}
-                            className="absolute top-0 right-0 text-white"
-                          >
-                            <svg
-                              className="w-5 h-5 cursor-pointer"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Cart Product Start */}
-                    </Fragment>
-                  );
-                })}
 
-              {products === null && (
+            <div className="m-4 flex-col">
+              {products.length === 0 ? (
                 <div className="m-4 flex-col text-white text-xl text-center">
                   No product in cart
                 </div>
+              ) : (
+                products.map((item, index) => (
+                  <Fragment key={index}>
+                    {/* Cart Product Start */}
+                    <div className="text-white flex space-x-2 my-4 items-center">
+                      <img
+                        className="w-16 h-16 object-cover object-center"
+                        src={`${apiURL}/uploads/products/${item.pImages?.[0]}`}
+                        alt="cartProduct"
+                      />
+                      <div className="relative w-full flex flex-col">
+                        <div className="my-2">{item.pName}</div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between space-x-2">
+                            <div className="text-sm text-gray-400">Quantity :</div>
+                            <div className="flex items-end">
+                              <span className="text-sm text-gray-200">
+                                {quantity(item._id)}
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-400">Subtotal :</span>{" "}
+                            ${subTotal(item._id, item.pPrice)}.00
+                          </div>
+                        </div>
+                        {/* Cart Product Remove Button */}
+                        <div
+                          onClick={() => removeCartProduct(item._id)}
+                          className="absolute top-0 right-0 text-white"
+                        >
+                          <svg
+                            className="w-5 h-5 cursor-pointer"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Cart Product End */}
+                  </Fragment>
+                ))
               )}
             </div>
           </div>
+
           <div className="m-4 space-y-4">
             <div
-              onClick={(e) => cartModalOpen()}
-              className="cursor-pointer px-4 py-2 border border-gray-400 text-white text-center cursor-pointer"
+              onClick={cartModalOpen}
+              className="cursor-pointer px-4 py-2 border border-gray-400 text-white text-center"
             >
               Continue shopping
             </div>
-            {data.cartTotalCost ? (
+
+            {data.cartTotalCost > 0 ? (
               <Fragment>
                 {isAuthenticate() ? (
                   <div
                     className="px-4 py-2 bg-black text-white text-center cursor-pointer"
-                    onClick={(e) => {
+                    onClick={() => {
                       history.push("/checkout");
                       cartModalOpen();
                     }}
@@ -180,7 +180,7 @@ const CartModal = () => {
                 ) : (
                   <div
                     className="px-4 py-2 bg-black text-white text-center cursor-pointer"
-                    onClick={(e) => {
+                    onClick={() => {
                       history.push("/");
                       cartModalOpen();
                       dispatch({

@@ -1,30 +1,36 @@
-export const subTotal = (id, price) => {
-  let subTotalCost = 0;
-  let carts = JSON.parse(localStorage.getItem("cart"));
-  carts.forEach((item) => {
-    if (item.id === id) {
-      subTotalCost = item.quantitiy * price;
-    }
-  });
-  return subTotalCost;
+// Mixins.js
+
+// Get cart from localStorage safely
+export const getCart = () => {
+  try {
+    const cart = JSON.parse(localStorage.getItem("cart"));
+    return Array.isArray(cart) ? cart : [];
+  } catch (err) {
+    return [];
+  }
 };
 
+// Get full cart list
+export const cartList = () => {
+  return getCart(); // always an array
+};
+
+// Get quantity of a specific product by id
 export const quantity = (id) => {
-  let product = 0;
-  let carts = JSON.parse(localStorage.getItem("cart"));
-  carts.forEach((item) => {
-    if (item.id === id) {
-      product = item.quantitiy;
-    }
-  });
-  return product;
+  const cart = getCart();
+  const product = cart.find((item) => item.id === id);
+  return product ? product.quantity : 0;
 };
 
+// Get subtotal for a specific product
+export const subTotal = (id, price) => {
+  return quantity(id) * (price || 0);
+};
+
+// Get total cost of all products in cart
 export const totalCost = () => {
-  let totalCost = 0;
-  let carts = JSON.parse(localStorage.getItem("cart"));
-  carts.forEach((item) => {
-    totalCost += item.quantitiy * item.price;
-  });
-  return totalCost;
+  const cart = getCart();
+  return cart.reduce((total, item) => {
+    return total + (item.price || 0) * (item.quantity || 0);
+  }, 0);
 };

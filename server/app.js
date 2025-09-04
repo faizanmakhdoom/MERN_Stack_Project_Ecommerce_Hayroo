@@ -23,6 +23,7 @@ const mongoose = require("mongoose");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const MONGO_URI = process.env.MONGO_URI || "mongodb://faizan:admin1@mongodb:27017/mongodb?authSource=admin";
 
 // Import Router
 const authRouter = require("./routes/auth");
@@ -41,17 +42,16 @@ CreateAllFolder();
 
 // Database Connection
 mongoose
-  .connect(process.env.DATABASE, {
+  .connect(MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    useCreateIndex: true,
   })
   .then(() =>
     console.log(
       "==============Mongodb Database Connected Successfully=============="
     )
   )
-  .catch((err) => console.log("Database Not Connected !!!"));
+  .catch((err) => console.log("Database Not Connected !!!", err.message));
 
 // Middleware
 app.use(morgan("dev"));
@@ -60,6 +60,17 @@ app.use(cors());
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+
+// --- Health Check Route ---
+app.get("/checkdb", (req, res) => {
+  const state = mongoose.connection.readyState;
+  // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+  if (state === 1) {
+    res.json({ status: "✅ Connected to MongoDB" });
+  } else {
+    res.json({ status: "❌ Not connected", state });
+  }
+});
 
 // Routes
 app.use("/api", authRouter);
